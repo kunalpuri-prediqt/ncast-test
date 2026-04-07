@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# ============================================================================
+# run.sh — Build and run the ncast MPI+CUDA benchmark in Docker
+# ============================================================================
+#
+# Prerequisites:
+#   - Docker with BuildKit
+#   - NVIDIA Container Toolkit  (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/)
+#   - At least 2 NVIDIA GPUs (or 1 GPU — the benchmark will still run, ranks share it)
+#
+# Usage:
+#   ./run.sh build          # build the Docker image
+#   ./run.sh run   [ARGS]   # run the benchmark (pass extra mpirun args)
+#   ./run.sh shell          # interactive shell inside the container
+#   ./run.sh all            # build + run
+# ============================================================================
+set -euo pipefail
+
+IMAGE_NAME="${NCAST_IMAGE:-ncast-bench}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# ---------------------------------------------------------------------------
+cmd_build() {
+    echo "==> Building Docker image: ${IMAGE_NAME}"
+    DOCKER_BUILDKIT=1 docker build \
+        -t "${IMAGE_NAME}" \
+        -f "${SCRIPT_DIR}/Dockerfile" \
+        "${SCRIPT_DIR}"
+}
+
+# ---------------------------------------------------------------------------
+cmd_run() {
+    echo "==> Running benchmark (results → test-output/)"
+    docker run --rm --gpus all \
+        -v "${SCRIPT_DIR}/test-input:/workspace/test-input:ro" \
+        -v "${SCRIPT_DIR}/test-output:/workspace/test-output" \
+        "${IMAGE_NAME}" "$@" \
+        2>&1 | tee "${SCRIPT_DIR}/test-output/benchmark-$(date +%Y%m%d-%H%M%S).log"
+}
+
+# ---------------------------------------------------------------------------
+cmd_shell() {
+    echo "==> Opening interactive shell"
+    docker run --rm -it --gpus all \
+        -v "${SCRIPT_DIR}/test-input:/workspace/test-input:ro" \
+        -v "${SCRIPT_DIR}/test-output:/workspace/test-output" \
+        --entrypoint /bin/bash \
+        "${IMAGE_NAME}"
+}
+
+# ---------------------------------------------------------------------------
+case "${1:-all}" in
+    build)  cmd_build ;;
+    run)    shift; cmd_run "$@" ;;
+    shell)  cmd_shell ;;
+    all)    cmd_build; cmd_run ;;
+    *)
+        echo "Usage: $0 {build|run|shell|all}"
+        exit 1
+        ;;
+esac
