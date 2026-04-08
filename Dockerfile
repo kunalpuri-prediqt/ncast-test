@@ -65,8 +65,8 @@ ENV LD_LIBRARY_PATH=${PREFIX}/lib:/usr/local/cuda/lib64
 ENV C_INCLUDE_PATH=${PREFIX}/include:/usr/local/cuda/include
 ENV CPLUS_INCLUDE_PATH=${PREFIX}/include:/usr/local/cuda/include
 
-RUN mpicxx -o ${PREFIX}/bin/mpi_cuda_bench /build/mpi_cuda_bench.cu \
-        -I/usr/local/cuda/include -L/usr/local/cuda/lib64 -lcudart
+RUN nvcc -ccbin mpicxx -o ${PREFIX}/bin/mpi_cuda_bench /build/mpi_cuda_bench.cu \
+        -I${PREFIX}/include -L${PREFIX}/lib -lmpi
 
 # ============================================================================
 # Runtime stage — smaller image
