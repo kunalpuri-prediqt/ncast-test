@@ -31,7 +31,7 @@ cmd_build() {
 # ---------------------------------------------------------------------------
 cmd_run() {
     echo "==> Running benchmark (results → test-output/)"
-    docker run --rm --gpus all \
+    docker run --rm --gpus all --ipc=host \
         -v "${SCRIPT_DIR}/test-input:/workspace/test-input:ro" \
         -v "${SCRIPT_DIR}/test-output:/workspace/test-output" \
         "${IMAGE_NAME}" "$@" \
@@ -41,7 +41,7 @@ cmd_run() {
 # ---------------------------------------------------------------------------
 cmd_shell() {
     echo "==> Opening interactive shell"
-    docker run --rm -it --gpus all \
+    docker run --rm -it --gpus all --ipc=host \
         -v "${SCRIPT_DIR}/test-input:/workspace/test-input:ro" \
         -v "${SCRIPT_DIR}/test-output:/workspace/test-output" \
         --entrypoint /bin/bash \

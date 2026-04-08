@@ -79,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libibverbs1 \
         librdmacm1 \
         libnuma1 \
+        zlib1g \
         openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
