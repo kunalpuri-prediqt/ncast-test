@@ -12,12 +12,16 @@
 #   ./run.sh build          # build the Docker image
 #   ./run.sh run   [ARGS]   # run the benchmark (pass extra mpirun args)
 #   ./run.sh shell          # interactive shell inside the container
+#   ./run.sh cbuild         # build via Docker Compose
+#   ./run.sh crun  [ARGS]   # run via Docker Compose
+#   ./run.sh cshell         # interactive shell via Docker Compose
 #   ./run.sh all            # build + run
 # ============================================================================
 set -euo pipefail
 
 IMAGE_NAME="${NCAST_IMAGE:-ncast-bench}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPOSE_FILE="${SCRIPT_DIR}/compose.yaml"
 
 # ---------------------------------------------------------------------------
 cmd_build() {
@@ -53,13 +57,35 @@ cmd_shell() {
 }
 
 # ---------------------------------------------------------------------------
+cmd_cbuild() {
+    echo "==> Building Docker Compose service"
+    docker compose -f "${COMPOSE_FILE}" build
+}
+
+# ---------------------------------------------------------------------------
+cmd_crun() {
+    echo "==> Running benchmark via Docker Compose (results → test-output/)"
+    docker compose -f "${COMPOSE_FILE}" run --rm ncast "$@" \
+        2>&1 | tee "${SCRIPT_DIR}/test-output/benchmark-$(date +%Y%m%d-%H%M%S).log"
+}
+
+# ---------------------------------------------------------------------------
+cmd_cshell() {
+    echo "==> Opening interactive shell via Docker Compose"
+    docker compose -f "${COMPOSE_FILE}" run --rm ncast /bin/bash
+}
+
+# ---------------------------------------------------------------------------
 case "${1:-all}" in
     build)  cmd_build ;;
     run)    shift; cmd_run "$@" ;;
     shell)  cmd_shell ;;
+    cbuild) cmd_cbuild ;;
+    crun)   shift; cmd_crun "$@" ;;
+    cshell) cmd_cshell ;;
     all)    cmd_build; cmd_run ;;
     *)
-        echo "Usage: $0 {build|run|shell|all}"
+        echo "Usage: $0 {build|run|shell|cbuild|crun|cshell|all}"
         exit 1
         ;;
 esac
