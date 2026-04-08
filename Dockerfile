@@ -1,7 +1,7 @@
 # ============================================================================
 # Dockerfile — ncast MPI+CUDA benchmark (reproducible build)
 # ============================================================================
-# Base: NVIDIA CUDA 12.8 devel on Ubuntu 22.04
+# Base: NVIDIA CUDA 13.2 devel on Ubuntu 22.04
 # Builds: UCX 1.20.0 → OpenMPI 5.0.10 → mpi_cuda_bench
 # ============================================================================
 FROM nvidia/cuda:13.2.0-devel-ubuntu22.04 AS builder
@@ -87,14 +87,19 @@ COPY --from=builder ${PREFIX} ${PREFIX}
 ENV PATH=${PREFIX}/bin:${PATH}
 ENV LD_LIBRARY_PATH=${PREFIX}/lib:/usr/local/cuda/lib64
 
+RUN useradd -m -s /bin/bash ncast
+
 WORKDIR /workspace
 COPY mca-params.conf /workspace/mca-params.conf
 
 # Directories for test I/O
-RUN mkdir -p /workspace/test-input /workspace/test-output
+RUN mkdir -p /workspace/test-input /workspace/test-output \
+    && chown -R ncast:ncast /workspace
+
+USER ncast
 
 # Default: run the benchmark with 2 ranks on available GPUs
-ENTRYPOINT ["mpirun", "--allow-run-as-root", \
+ENTRYPOINT ["mpirun", \
             "--mca", "pml", "ucx", \
             "--mca", "btl", "^vader,tcp,openib"]
 CMD ["-np", "2", "mpi_cuda_bench"]
