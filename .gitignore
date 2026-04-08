@@ -1,2 +1,3 @@
 packages
 *.exe
+test-output/*.log

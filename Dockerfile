@@ -84,11 +84,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder ${PREFIX} ${PREFIX}
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENV PATH=${PREFIX}/bin:${PATH}
 ENV LD_LIBRARY_PATH=${PREFIX}/lib:/usr/local/cuda/lib64
+ENV HWLOC_COMPONENTS=-cuda,-nvml
 
 RUN useradd -m -s /bin/bash ncast
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 WORKDIR /workspace
 COPY mca-params.conf /workspace/mca-params.conf
@@ -99,8 +102,6 @@ RUN mkdir -p /workspace/test-input /workspace/test-output \
 
 USER ncast
 
-# Default: run the benchmark with 2 ranks on available GPUs
-ENTRYPOINT ["mpirun", \
-            "--mca", "pml", "ucx", \
-            "--mca", "btl", "^vader,tcp,openib"]
+# Default: run the benchmark with 2 ranks via the UCX-tuned entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["-np", "2", "mpi_cuda_bench"]
